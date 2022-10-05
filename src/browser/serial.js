@@ -5,8 +5,7 @@
  *
  * @param {BusConnector} bus
  */
-function SerialAdapter(element, bus)
-{
+function SerialAdapter(element, bus) {
     var serial = this;
 
     this.enabled = true;
@@ -16,23 +15,22 @@ function SerialAdapter(element, bus)
 
     this.last_update = 0;
 
+    this.bus.register(
+        "serial0-output-char",
+        function (chr) {
+            this.show_char(chr);
+        },
+        this
+    );
 
-    this.bus.register("serial0-output-char", function(chr)
-    {
-        this.show_char(chr);
-    }, this);
-
-
-    this.destroy = function()
-    {
+    this.destroy = function () {
         element.removeEventListener("keypress", keypress_handler, false);
         element.removeEventListener("keydown", keydown_handler, false);
         element.removeEventListener("paste", paste_handler, false);
         window.removeEventListener("mousedown", window_click_handler, false);
     };
 
-    this.init = function()
-    {
+    this.init = function () {
         this.destroy();
 
         element.style.display = "block";
@@ -43,24 +41,16 @@ function SerialAdapter(element, bus)
     };
     this.init();
 
-
-    this.show_char = function(chr)
-    {
-        if(chr === "\x08")
-        {
+    this.show_char = function (chr) {
+        if (chr === "\x08") {
             this.text = this.text.slice(0, -1);
             this.update();
-        }
-        else if(chr === "\r")
-        {
+        } else if (chr === "\r") {
             // do nothing
-        }
-        else
-        {
+        } else {
             this.text += chr;
 
-            if(chr === "\n")
-            {
+            if (chr === "\n") {
                 this.text_new_line = true;
             }
 
@@ -68,15 +58,12 @@ function SerialAdapter(element, bus)
         }
     };
 
-    this.update = function()
-    {
+    this.update = function () {
         var now = Date.now();
         var delta = now - this.last_update;
 
-        if(delta < 16)
-        {
-            if(this.update_timer === undefined)
-            {
+        if (delta < 16) {
+            if (this.update_timer === undefined) {
                 this.update_timer = setTimeout(() => {
                     this.update_timer = undefined;
                     var now = Date.now();
@@ -85,11 +72,8 @@ function SerialAdapter(element, bus)
                     this.render();
                 }, 16 - delta);
             }
-        }
-        else
-        {
-            if(this.update_timer !== undefined)
-            {
+        } else {
+            if (this.update_timer !== undefined) {
                 clearTimeout(this.update_timer);
                 this.update_timer = undefined;
             }
@@ -99,12 +83,10 @@ function SerialAdapter(element, bus)
         }
     };
 
-    this.render = function()
-    {
+    this.render = function () {
         element.value = this.text;
 
-        if(this.text_new_line)
-        {
+        if (this.text_new_line) {
             this.text_new_line = false;
             element.scrollTop = 1e9;
         }
@@ -113,18 +95,14 @@ function SerialAdapter(element, bus)
     /**
      * @param {number} chr_code
      */
-    this.send_char = function(chr_code)
-    {
-        if(serial.bus)
-        {
+    this.send_char = function (chr_code) {
+        if (serial.bus) {
             serial.bus.send("serial0-input", chr_code);
         }
     };
 
-    function may_handle(e)
-    {
-        if(!serial.enabled)
-        {
+    function may_handle(e) {
+        if (!serial.enabled) {
             return false;
         }
 
@@ -133,14 +111,11 @@ function SerialAdapter(element, bus)
         return true;
     }
 
-    function keypress_handler(e)
-    {
-        if(!serial.bus)
-        {
+    function keypress_handler(e) {
+        if (!serial.bus) {
             return;
         }
-        if(!may_handle(e))
-        {
+        if (!may_handle(e)) {
             return;
         }
 
@@ -150,45 +125,36 @@ function SerialAdapter(element, bus)
         e.preventDefault();
     }
 
-    function keydown_handler(e)
-    {
+    function keydown_handler(e) {
         var chr = e.which;
 
-        if(chr === 8)
-        {
+        if (chr === 8) {
             // supress backspace
             serial.send_char(127);
             e.preventDefault();
-        }
-        else if(chr === 9)
-        {
+        } else if (chr === 9) {
             // tab
             serial.send_char(9);
             e.preventDefault();
         }
     }
 
-    function paste_handler(e)
-    {
-        if(!may_handle(e))
-        {
+    function paste_handler(e) {
+        if (!may_handle(e)) {
             return;
         }
 
         var data = e.clipboardData.getData("text/plain");
 
-        for(var i = 0; i < data.length; i++)
-        {
+        for (var i = 0; i < data.length; i++) {
             serial.send_char(data.charCodeAt(i));
         }
 
         e.preventDefault();
     }
 
-    function window_click_handler(e)
-    {
-        if(e.target !== element)
-        {
+    function window_click_handler(e) {
+        if (e.target !== element) {
             element.blur();
         }
     }
@@ -199,53 +165,54 @@ function SerialAdapter(element, bus)
  *
  * @param {BusConnector} bus
  */
-function SerialRecordingAdapter(bus)
-{
+function SerialRecordingAdapter(bus) {
     var serial = this;
     this.text = "";
 
-    bus.register("serial0-output-char", function(chr)
-    {
-        this.text += chr;
-    }, this);
+    bus.register(
+        "serial0-output-char",
+        function (chr) {
+            this.text += chr;
+        },
+        this
+    );
 }
 
 /**
  * @constructor
  * @param {BusConnector} bus
  */
-function SerialAdapterXtermJS(element, bus)
-{
+function SerialAdapterXtermJS(element, bus) {
     this.element = element;
 
-    if(!window["Terminal"])
-    {
+    if (!window["Terminal"]) {
         return;
     }
 
-    var term = this.term = new window["Terminal"]();
+    // var term = this.term = new window["Terminal"]();
+    var term = (this.term = window["term"]);
     term["setOption"]("logLevel", "off");
-    term.write("This is the serial console. Whatever you type or paste here will be sent to COM1");
 
-    const on_data_disposable = term["onData"](function(data) {
-        for(let i = 0; i < data.length; i++)
-        {
+    const on_data_disposable = term["onData"](function (data) {
+        for (let i = 0; i < data.length; i++) {
             bus.send("serial0-input", data.charCodeAt(i));
         }
     });
 
-    bus.register("serial0-output-char", function(chr)
-    {
-        term.write(chr);
-    }, this);
+    bus.register(
+        "serial0-output-char",
+        function (chr) {
+            term.write(chr);
+        },
+        this
+    );
 
-    this.destroy = function() {
+    this.destroy = function () {
         on_data_disposable["dispose"]();
         term["dispose"]();
     };
 }
 
-SerialAdapterXtermJS.prototype.show = function()
-{
-    this.term && this.term.open(this.element);
+SerialAdapterXtermJS.prototype.show = function () {
+    // this.term && this.term.open(this.element);
 };
