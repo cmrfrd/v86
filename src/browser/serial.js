@@ -202,7 +202,7 @@ function SerialAdapterXtermJS(element, bus) {
     bus.register(
         "serial0-output-char",
         function (chr) {
-            window["term"].writeUtf8(chr);
+            term.writeUtf8(chr);
         },
         this
     );
